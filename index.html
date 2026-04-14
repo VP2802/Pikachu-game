@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale =1.0">
+        <title>GAME ONE PIECE</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id="startScreen" class = "start-screen">
+            <h1>GAME ONE PIECE</h1>
+            <p id="mode-title">MODE</p>
+            <div class="mode-buttons">
+                <div>
+                    <button class="btn-easy" onclick="startGame('easy')">EASY</button>
+                    <p>10 mins • 3 hints • 10x10</p>
+                </div>
+                <div>
+                    <button class="btn-hard" onclick="startGame('hard')">HARD</button>
+                    <p>5 mins • 0 hints • 10x16</p>
+                </div>
+            </div>
+        </div>
+        <div id="gameContainer" class="game-container hidden">
+            <h1>GAME ONE PIECE</h1>
+            <div class="top-bar">
+                <p id="score"></p>
+                <div id="timer"></div>
+                <button id="soundBtn">🔊 Sound</button>
+                <button id="hintBtn"></button>
+                <button id="restartBtn">Restart</button>
+                <button id="homeBtn">Home</button>
+            </div>
+            <div id="statusMessage" class="statusMessage"></div>
+            <div id="comboMessage" class="comboMessage"></div>
+            <div class="board-wrapper">
+                <canvas id="lineCanvas"></canvas>
+                <div id="board" class="board"></div>
+            </div>
+        </div>
+        <div id="endScreen" class="end-screen hidden">
+            <h2 id="endMessage"></h2>
+            <button onclick="showStartScreen()">Home</button>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
