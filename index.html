@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale =1.0">
+        <title>GAME ONE PIECE</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id="startScreen" class="start-screen">
+            <h1>GAME ONE PIECE</h1>
+            <p id="mode-title">MODE</p>
+            <div class="mode-buttons">
+                <div>
+                    <button class="btn-easy" onclick="startGame('easy')">EASY</button>
+                    <p>15 mins • 3 hints • 9x10 • reshuffle x5</p>
+                </div>
+                <div>
+                    <button class="btn-hard" onclick="startGame('hard')">HARD</button>
+                    <p>12 mins • 0 hints • 10x15 • reshuffle x3</p>
+                </div>
+                <div>
+                    <button class="btn-insane" onclick="startGame('insane')">INSANE</button>
+                    <p>10 mins • 0 hints • 12x15 • fixed random shift / game • reshuffle x1</p>
+                </div>
+                <div>
+                    <button class="btn-impossible" onclick="startGame('impossible')">IMPOSSIBLE</button>
+                    <p>7 mins • 0 hints • 15x16 • random shift every match • reshuffle x0</p>
+                </div>
+            </div>
+            <div class="leaderboard">
+                <h2>LEADERBOARD</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Score</th>
+                            <th>Time</th>
+                            <th>Mode</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <tr>
+                            <td colspan="4">No records yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="gameContainer" class="game-container hidden">
+            <h1>GAME ONE PIECE</h1>
+            <div class="top-bar">
+                <p id="score"></p>
+                <button id="soundBtn">🔊 Sound</button>
+                <button id="hintBtn"></button>
+                <button id="reshuffleBtn" class="hidden">🔄 Reshuffle</button>
+                <button id="restartBtn">Restart</button>
+                <button id="homeBtn">Home</button>
+            </div>
+            <div class="game-layout">
+                <div class="board-wrapper">
+                    <canvas id="lineCanvas"></canvas>
+                    <div id="board" class="board"></div>
+                </div>
+                <div class="time-column">
+                    <div class="time-column-title">TIME</div>
+                    <div class="time-track">
+                        <div id="timeBar" class="time-bar"></div>
+                    </div>
+                    <div id="timeBarValue" class="time-bar-value">00:00</div>
+                </div>
+            </div>
+        </div>
+        <div id="endScreen" class="end-screen hidden">
+            <h2 id="endMessage"></h2>
+            <p id="bonusMessage" class="bonus-message"></p>
+            <p id="modeBonusMessage" class="bonus-message"></p>
+            <button onclick="showStartScreen()">Home</button>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
