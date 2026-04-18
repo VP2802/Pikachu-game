@@ -18,6 +18,9 @@ const reshuffleBtn = document.getElementById("reshuffleBtn");
 const timeBar = document.getElementById("timeBar");
 const timeBarValue = document.getElementById("timeBarValue");
 const leaderboardBody = document.getElementById("leaderboardBody");
+const pauseBtn = document.getElementById("pauseBtn");
+const pauseOverlay = document.getElementById("pauseOverlay");
+const boardWrapper = document.querySelector(".board-wrapper");
 const LEADERBOARD_KEY = "onepiece_leaderboard";
 
 const matchSound = [
@@ -65,6 +68,7 @@ let matchResolveTimeout = null;
 let wrongResolveTimeout = null;
 let hintClearTimeout = null;
 let insaneShiftDirection = null;
+let isPaused = false;
 
 const gameModes = {
     easy: { timeLeft: 900, hintsLeft: 3, reshufflesLeft: 5, rows: 9, cols: 10, cellSize: 60 },
@@ -98,6 +102,8 @@ function showStartScreen() {
     startScreen.classList.remove("hidden");
     gameContainer.classList.add("hidden");
     endScreen.classList.add("hidden");
+    pauseOverlay.classList.add("hidden");
+    boardWrapper.classList.remove("paused");
 
     firstSelected = null;
     secondSelected = null;
@@ -107,6 +113,8 @@ function showStartScreen() {
     modeBonusMessage.textContent = "";
     totalScoreMessage.textContent = "";
     leaderboardRankMessage.textContent = "";
+    pauseBtn.textContent = "⏸ Pause";
+    isPaused = false;
     currentMode = null;
     currentModeName = null;
     reshufflesLeft = 0;
@@ -134,7 +142,11 @@ function startGame(mode) {
     startScreen.classList.add("hidden");
     gameContainer.classList.remove("hidden");
     endScreen.classList.add("hidden");
+    pauseOverlay.classList.add("hidden");
+    boardWrapper.classList.remove("paused");
 
+    isPaused = false;
+    pauseBtn.textContent = "⏸ Pause";
     timeLeft = currentMode.timeLeft;
     hintsLeft = currentMode.hintsLeft;
     reshufflesLeft = currentMode.reshufflesLeft ?? 0;
@@ -385,7 +397,7 @@ function renderBoard() {
 }
 
 function handleCellClick(row, col) {
-    if (isGameOver || isBoardBusy) return;
+    if (isGameOver || isBoardBusy||isPaused) return;
     if (board[row][col] === 0) return;
 
     if (firstSelected === null) {
@@ -1044,6 +1056,28 @@ function renderLeaderboard() {
     });
 }
 
+function togglePause() {
+    if (!currentMode || isGameOver) return;
+    if (isBoardBusy) return;
+
+    isPaused = !isPaused;
+
+    if (isPaused) {
+        clearInterval(timeInterval);
+        clearPath();
+
+        pauseOverlay.classList.remove("hidden");
+        boardWrapper.classList.add("paused");
+        pauseBtn.textContent = "▶ Resume";
+        return;
+    }
+
+    pauseOverlay.classList.add("hidden");
+    boardWrapper.classList.remove("paused");
+    pauseBtn.textContent = "⏸ Pause";
+    startTimer();
+}
+
 function restartGame() {
     if (!currentMode) return;
 
@@ -1062,6 +1096,10 @@ function restartGame() {
     reshufflesLeft = currentMode.reshufflesLeft ?? 0;
     hintCells = [];
     wrongCells = [];
+    isPaused = false;
+    pauseBtn.textContent = "⏸ Pause";
+    pauseOverlay.classList.add("hidden");
+    boardWrapper.classList.remove("paused");
 
     if (currentModeName === "insane") {
         insaneShiftDirection = getRandomDirection();
@@ -1090,6 +1128,7 @@ homeBtn.addEventListener("click", showStartScreen);
 hintBtn.addEventListener("click", useHint);
 reshuffleBtn.addEventListener("click", useManualReshuffle);
 restartBtn.addEventListener("click", restartGame);
+pauseBtn.addEventListener("click", togglePause);
 
 window.addEventListener("resize", () => {
     if (gameContainer.classList.contains("hidden")) return;
