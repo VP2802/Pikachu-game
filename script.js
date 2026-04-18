@@ -9,6 +9,8 @@ const endScreen = document.getElementById("endScreen");
 const endMessage = document.getElementById("endMessage");
 const bonusMessage = document.getElementById("bonusMessage");
 const modeBonusMessage = document.getElementById("modeBonusMessage");
+const totalScoreMessage = document.getElementById("totalScoreMessage");
+const leaderboardRankMessage = document.getElementById("leaderboardRankMessage");
 const hintBtn = document.getElementById("hintBtn");
 const homeBtn = document.getElementById("homeBtn");
 const soundBtn = document.getElementById("soundBtn");
@@ -65,10 +67,10 @@ let hintClearTimeout = null;
 let insaneShiftDirection = null;
 
 const gameModes = {
-    easy: { timeLeft: 900, hintsLeft: 3, reshufflesLeft: 5, rows: 9, cols: 10, cellSize: 35 },
-    hard: { timeLeft: 720, hintsLeft: 0, reshufflesLeft: 3, rows: 10, cols: 15, cellSize: 35 },
-    insane: { timeLeft: 600, hintsLeft: 0, reshufflesLeft: 1, rows:12, cols: 15, cellSize: 35 },
-    impossible: { timeLeft: 420, hintsLeft: 0, reshufflesLeft: 0, rows: 15, cols: 16, cellSize: 25 }
+    easy: { timeLeft: 900, hintsLeft: 3, reshufflesLeft: 5, rows: 9, cols: 10, cellSize: 60 },
+    hard: { timeLeft: 720, hintsLeft: 0, reshufflesLeft: 3, rows: 10, cols: 15, cellSize: 50 },
+    insane: { timeLeft: 600, hintsLeft: 0, reshufflesLeft: 1, rows:12, cols: 15, cellSize: 45 },
+    impossible: { timeLeft: 600, hintsLeft: 0, reshufflesLeft: 0, rows: 15, cols: 16, cellSize: 35 }
 };
 
 function clearImpossibleReshuffleTimer() {
@@ -103,6 +105,8 @@ function showStartScreen() {
     wrongCells = [];
     bonusMessage.textContent = "";
     modeBonusMessage.textContent = "";
+    totalScoreMessage.textContent = "";
+    leaderboardRankMessage.textContent = "";
     currentMode = null;
     currentModeName = null;
     reshufflesLeft = 0;
@@ -426,9 +430,6 @@ function handleCellClick(row, col) {
 
         clearTimeout(comboTimeOut);
         combo += 1;
-        comboTimeOut = setTimeout(() => {
-            resetCombo();
-        }, 3000);
 
         isBoardBusy = true;
         clearTimeout(matchResolveTimeout);
@@ -444,10 +445,7 @@ function handleCellClick(row, col) {
             }
 
             const comboBonusPerLevel = getComboBonusPerLevel();
-            const effectiveCombo =
-                (currentModeName === "insane" || currentModeName === "impossible")
-                    ? Math.min(combo, 5)
-                    : combo;
+            const effectiveCombo = Math.min(combo, 5);
 
             score += 100 + (effectiveCombo - 1) * comboBonusPerLevel;
             scoreElement.textContent = `Score: ${score}`;
@@ -461,6 +459,10 @@ function handleCellClick(row, col) {
 
             isBoardBusy = false;
             matchResolveTimeout = null;
+
+            comboTimeOut = setTimeout(() => {
+                resetCombo();
+            }, currentModeName === "insane" || currentModeName === "impossible" ? 5000 : 3000);
 
             if (checkWin()) return;
 
@@ -543,14 +545,25 @@ function countRemainingTiles() {
 }
 
 function getComboBonusPerLevel() {
-    if (currentModeName === "insane" || currentModeName === "impossible") return 25;
-    return 50;
+    switch(currentModeName){
+        case "easy":
+            return 10;
+            break;
+        case "hard":
+            return 20;
+            break;
+        case "insane":
+            return 40;
+        case "impossible":
+            return 80;
+            break;
+    }
 }
 
 function getModeBonus() {
     if (currentModeName === "hard") return 500;
-    if (currentModeName === "insane") return 1000;
-    if (currentModeName === "impossible") return 1500;
+    if (currentModeName === "insane") return 2000;
+    if (currentModeName === "impossible") return 5000;
     return 0;
 }
 
@@ -750,11 +763,13 @@ function checkWin() {
     clearPendingActions();
     isGameOver = true;
 
-    saveLeaderboard();
+    const rank = saveLeaderboard();
     showEndScreen(
         "CONGRATULATIONS, YOU WIN!",
-        `⚡Time bonus: +${timeBonus}`,
-        `Mode bonus: +${modeBonus}`
+        `⚡ Time bonus: +${timeBonus}`,
+        `🎯 Mode bonus: +${modeBonus}`,
+        `🏆 Total Score: ${score}`,
+        rank ? `🔥 You have reached Top ${rank} on Leaderboard!`: ""
     );
     return true;
 }
@@ -797,7 +812,9 @@ function handleTimeUp() {
     secondSelected = null;
     clearPath();
     renderBoard();
-    showEndScreen("TIME'S UP!", "", "");
+    const rank = saveLeaderboard();
+    showEndScreen("TIME'S UP!", "", "",
+        `🏆 Total Score: ${score}`,  rank ? `🔥 You reached Top ${rank} on Leaderboard!` : "");
 }
 
 function getRandomDirection() {
@@ -873,7 +890,8 @@ function shiftBoard(direction) {
     }
 }
 
-function showEndScreen(message, bonusText = "", modeBonusText = "") {
+function showEndScreen(message, bonusText = "", modeBonusText = "",
+                        totalScoreText = "",leaderBoardRankText = "") {
     startScreen.classList.add("hidden");
     gameContainer.classList.add("hidden");
     endScreen.classList.remove("hidden");
@@ -881,6 +899,8 @@ function showEndScreen(message, bonusText = "", modeBonusText = "") {
     endMessage.textContent = message;
     bonusMessage.textContent = bonusText;
     modeBonusMessage.textContent = modeBonusText;
+    totalScoreMessage.textContent = totalScoreText;
+    leaderboardRankMessage.textContent = leaderBoardRankText;
 
     endScreen.classList.remove("win-flash");
     endMessage.classList.remove("win-pop");
@@ -970,10 +990,11 @@ function turnOffSound() {
 }
 
 function saveLeaderboard() {
-    if (!currentMode || !currentModeName) return;
+    if (!currentMode || !currentModeName) return null;
 
     const usedSeconds = currentMode.timeLeft - timeLeft;
     const newRecord = {
+        id: Date.now() + Math.random(),
         score,
         usedSeconds,
         time: formatTime(usedSeconds),
@@ -988,7 +1009,12 @@ function saveLeaderboard() {
         return a.usedSeconds - b.usedSeconds;
     });
 
+    const rank = leaderboard.findIndex(item => item.id === newRecord.id) + 1;
+
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard.slice(0, 10)));
+
+    if (rank >= 1 && rank <= 10) return rank;
+    return null;
 }
 
 function renderLeaderboard() {
