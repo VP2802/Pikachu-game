@@ -68,7 +68,7 @@ const gameModes = {
     easy: { timeLeft: 900, hintsLeft: 3, reshufflesLeft: 5, rows: 9, cols: 10, cellSize: 35 },
     hard: { timeLeft: 720, hintsLeft: 0, reshufflesLeft: 3, rows: 10, cols: 15, cellSize: 35 },
     insane: { timeLeft: 600, hintsLeft: 0, reshufflesLeft: 1, rows:12, cols: 15, cellSize: 35 },
-    impossible: { timeLeft: 420, hintsLeft: 0, reshufflesLeft: 0, rows: 15, cols: 16, cellSize: 35 }
+    impossible: { timeLeft: 480, hintsLeft: 0, reshufflesLeft: 0, rows: 15, cols: 16, cellSize: 35 }
 };
 
 function clearImpossibleReshuffleTimer() {
