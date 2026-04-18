@@ -549,8 +549,8 @@ function getComboBonusPerLevel() {
 
 function getModeBonus() {
     if (currentModeName === "hard") return 500;
-    if (currentModeName === "insane") return 1000;
-    if (currentModeName === "impossible") return 1500;
+    if (currentModeName === "insane") return 2500;
+    if (currentModeName === "impossible") return 10000;
     return 0;
 }
 
