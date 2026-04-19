@@ -12,9 +12,9 @@ A browser-based **One Piece themed Pikachu matching game** built with **HTML, CS
 
 Players match identical character tiles by connecting them with a valid path of at most **2 turns**. The game includes multiple difficulty modes, combo-based scoring, board shifting mechanics in higher modes, a stylized **Wanted Poster timer**, and a persistent local leaderboard.
 
-The project also supports **2 play styles**:
+The project supports **2 play types**:
 
-- **Single Run**: play one stage and finish immediately
+- **Single Run**: play exactly 1 stage and finish immediately
 - **Continuous**: keep playing stage after stage, accumulate total run score, and press **End** anytime to summarize the run
 
 ---
@@ -47,10 +47,12 @@ The project also supports **2 play styles**:
 
 ### Continuous
 - Keep playing multiple stages in a row
-- **Run score** is accumulated across cleared stages
+- **Run total score** is accumulated across cleared stages
 - The top bar displays:
-  - **Score** = current accumulated run score
+  - **Total** = accumulated run score
+  - **Stage Score** = current stage score
   - **Stage** = current stage number
+- After clearing a stage, a short **stage clear overlay** appears, then the next stage begins automatically
 - Press **End** anytime to stop and save the run
 - Leaderboard records how many stages were cleared in that run
 
@@ -60,10 +62,10 @@ The project also supports **2 play styles**:
 
 | Mode | Time | Hints | Board Size | Special Rules |
 |------|------|-------|------------|---------------|
-| Easy | 15 minutes | 3 | 9 x 10 | 5 reshuffles |
-| Hard | 12 minutes | 0 | 10 x 15 | 3 reshuffles |
-| Insane | 10 minutes | 0 | 12 x 15 | 1 reshuffle + fixed random shift for the whole game |
-| Impossible | 8 minutes | 0 | 15 x 16 | No reshuffle + random shift after every match |
+| Easy | 15 minutes | 3 | 9 x 10 | Use hints first, then **Reshuffle unlocks after hints run out** (up to 5 uses) |
+| Hard | 12 minutes | 0 | 10 x 15 | 3 manual reshuffles |
+| Insane | 10 minutes | 0 | 12 x 15 | 1 manual reshuffle + fixed random shift direction for the whole stage |
+| Impossible | 8 minutes | 0 | 15 x 16 | No manual reshuffle + random shift after every successful match |
 
 ---
 
@@ -80,8 +82,11 @@ Each successful match gives:
 - **Insane**: +25 per combo level
 - **Impossible**: +35 per combo level
 
+Only up to the first **5 combo levels** are counted for combo scaling.
+
 ### Time Bonus Multiplier
 Remaining time is converted into bonus points when clearing a stage:
+
 - **Easy**: x8
 - **Hard**: x12
 - **Insane**: x16
@@ -93,6 +98,13 @@ Remaining time is converted into bonus points when clearing a stage:
 - **Insane**: 1200
 - **Impossible**: 2500
 
+### Final Stage Score
+When a stage is cleared:
+
+**Stage Total = Match Score + Time Bonus + Mode Bonus**
+
+In **Continuous** mode, only **cleared stages** are added into the run total.
+
 ### Leaderboard Ranking Priority
 1. Higher **score**
 2. More **stages cleared**
@@ -100,12 +112,32 @@ Remaining time is converted into bonus points when clearing a stage:
 
 ---
 
+## Hint and Reshuffle Rules
+
+### Hint
+- Only available in **Easy** mode
+- Each use highlights a valid pair
+- Using a hint reduces score by **200**
+- When all hints are used, the **Hint button disappears**
+
+### Reshuffle
+- **Easy**: Reshuffle only appears **after all hints are used**
+- **Hard**: Available immediately
+- **Insane**: Available immediately
+- **Impossible**: Not available
+
+If the board has no valid move:
+- the game reshuffles the remaining tiles
+- if repeated reshuffles still fail, the remaining board can be regenerated to prevent deadlock
+
+---
+
 ## Controls
 
 - **Sound**: turn sound on/off
 - **Hints**: reveal a valid move in Easy mode
-- **Reshuffle**: shuffle remaining tiles in supported modes
-- **Pause**: pause or resume the game
+- **Reshuffle**: shuffle the remaining board when allowed
+- **Pause**: pause or resume the current stage
 - **Restart**: restart the current run
 - **End**: finish the current continuous run and show the summary
 - **Home**: return to the start screen
@@ -144,6 +176,7 @@ One-Piece-Bounty-Match/
 ├── README.md
 ├── image/
 └── sound/
+```
 
 ---
 
