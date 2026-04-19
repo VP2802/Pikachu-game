@@ -1,10 +1,10 @@
-# Pikachu-game
+# One Piece: Bounty Match
 
 A browser-based **One Piece themed Pikachu matching game** built with **HTML, CSS, and JavaScript**.
 
 ## Live Demo
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-0ea5e9?style=for-the-badge&logo=github)](https://vp2802.github.io/Pikachu-game/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-0ea5e9?style=for-the-badge&logo=github)](https://vp2802.github.io/One-Piece-Bounty-Match/)
 
 ## About the Project
 
