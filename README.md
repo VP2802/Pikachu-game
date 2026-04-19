@@ -1,4 +1,4 @@
-# Pikachu-game
+# One Piece: Bounty Match
 
 A browser-based **One Piece themed Pikachu matching game** built with **HTML, CSS, and JavaScript**.
 
