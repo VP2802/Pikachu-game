@@ -580,7 +580,7 @@ function getComboBonusPerLevel() {
         case "insane":
             return 40;
         case "impossible":
-            return 80;
+            return 60;
             break;
     }
 }
