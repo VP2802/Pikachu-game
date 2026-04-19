@@ -69,6 +69,7 @@ let wrongResolveTimeout = null;
 let hintClearTimeout = null;
 let insaneShiftDirection = null;
 let isPaused = false;
+let matchedCells = [];
 
 const gameModes = {
     easy: { timeLeft: 900, hintsLeft: 3, reshufflesLeft: 5, rows: 9, cols: 10, cellSize: 60 },
@@ -109,6 +110,7 @@ function showStartScreen() {
     secondSelected = null;
     hintCells = [];
     wrongCells = [];
+    matchedCells = [];
     bonusMessage.textContent = "";
     modeBonusMessage.textContent = "";
     totalScoreMessage.textContent = "";
@@ -153,6 +155,7 @@ function startGame(mode) {
     rows = currentMode.rows;
     cols = currentMode.cols;
     cellSize = currentMode.cellSize;
+    updateBoardBackground();
 
     if (currentModeName === "insane") {
         insaneShiftDirection = getRandomDirection();
@@ -249,6 +252,7 @@ function initGame() {
     isGameOver = false;
     hintCells = [];
     wrongCells = [];
+    matchedCells = [];
     resetCombo();
     updateTimeColumnDisplay();
 
@@ -390,6 +394,11 @@ function renderBoard() {
                 cell.classList.add("wrong");
             }
 
+            const isMatchedCell = matchedCells.some(item => item.row === row && item.col === col);
+            if (isMatchedCell) {
+                cell.classList.add("matched");
+            }
+
             cell.addEventListener("click", () => handleCellClick(row, col));
             boardElement.appendChild(cell);
         }
@@ -444,10 +453,14 @@ function handleCellClick(row, col) {
         combo += 1;
 
         isBoardBusy = true;
+        matchedCells = [p1,p2];
+        renderBoard();
+
         clearTimeout(matchResolveTimeout);
         matchResolveTimeout = setTimeout(() => {
             board[p1.row][p1.col] = 0;
             board[p2.row][p2.col] = 0;
+            matchedCells = [];
 
             if (currentModeName === "insane") {
                 shiftBoard(insaneShiftDirection);
@@ -482,7 +495,7 @@ function handleCellClick(row, col) {
                 notify("There are no choices left! Reshuffle!");
                 shuffleRemainingBoard();
             }
-        }, 300);
+        }, 700);
 
         return;
     }
@@ -967,6 +980,26 @@ function useHint() {
     }, 5000);
 }
 
+function updateBoardBackground() {
+    if (!boardElement) return;
+
+    const backgroundMap = {
+        easy: "image/board_easy.jpg",
+        hard: "image/board_hard.jpg",
+        insane: "image/board_insane.jpg",
+        impossible: "image/board_impossible.jpg"
+    };
+
+    const background = backgroundMap[currentModeName];
+
+    if (!background) {
+        boardElement.style.backgroundImage = "none";
+        return;
+    }
+
+    boardElement.style.backgroundImage = `url("${background}")`;
+}
+
 function turnOnSound() {
     for (let i = 0; i < 3; i++) {
         matchSound[i].volume = 0.25;
@@ -1096,6 +1129,7 @@ function restartGame() {
     reshufflesLeft = currentMode.reshufflesLeft ?? 0;
     hintCells = [];
     wrongCells = [];
+    matchedCells = [];
     isPaused = false;
     pauseBtn.textContent = "⏸ Pause";
     pauseOverlay.classList.add("hidden");
