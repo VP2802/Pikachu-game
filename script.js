@@ -22,6 +22,10 @@ const pauseBtn = document.getElementById("pauseBtn");
 const pauseOverlay = document.getElementById("pauseOverlay");
 const boardWrapper = document.querySelector(".board-wrapper");
 const LEADERBOARD_KEY = "onepiece_leaderboard";
+const endRunBtn = document.getElementById("endRunBtn");
+const playTypeDescription = document.getElementById("playTypeDescription");
+const singleRunBtn = document.getElementById("singleRunBtn");
+const continuousRunBtn = document.getElementById("continuousRunBtn");
 
 const matchSound = [
     new Audio("sound/match1.mp3"),
@@ -70,6 +74,10 @@ let hintClearTimeout = null;
 let insaneShiftDirection = null;
 let isPaused = false;
 let matchedCells = [];
+let currentPlayType = "single";
+let runTotalScore = 0;
+let stagesPlayed = 1;
+let runStartTimestamp = null;
 
 const gameModes = {
     easy: { timeLeft: 900, hintsLeft: 3, reshufflesLeft: 5, rows: 9, cols: 10, cellSize: 60 },
@@ -77,6 +85,20 @@ const gameModes = {
     insane: { timeLeft: 600, hintsLeft: 0, reshufflesLeft: 1, rows:12, cols: 15, cellSize: 45 },
     impossible: { timeLeft: 480, hintsLeft: 0, reshufflesLeft: 0, rows: 15, cols: 16, cellSize: 35 }
 };
+
+function setPlayType(type) {
+    currentPlayType = type;
+
+    if (singleRunBtn) singleRunBtn.classList.toggle("active", type === "single");
+    if (continuousRunBtn) continuousRunBtn.classList.toggle("active", type === "continuous");
+
+    if (playTypeDescription) {
+        playTypeDescription.textContent =
+            type === "single"
+                ? "Play exactly 1 match and get the final result."
+                : "Keep playing stage after stage with accumulated score until you press End or lose.";
+    }
+}
 
 function clearImpossibleReshuffleTimer() {
     clearInterval(impossibleReshuffleInterval);
@@ -93,6 +115,12 @@ function clearPendingActions() {
     hintClearTimeout = null;
 
     isBoardBusy = false;
+}
+
+function resetRunProgress() {
+    runTotalScore = 0;
+    stagesPlayed = 1;
+    runStartTimestamp = null;
 }
 
 function showStartScreen() {
@@ -134,12 +162,19 @@ function showStartScreen() {
     clearPath();
     updateReshuffleDisplay();
     updateTimeColumnDisplay();
+    resetRunProgress();
     renderLeaderboard();
 }
 
 function startGame(mode) {
     currentModeName = mode;
     currentMode = gameModes[mode];
+
+    if (!runStartTimestamp) {
+        runStartTimestamp = Date.now();
+        runTotalScore = 0;
+        stagesPlayed = 1;
+    }
 
     startScreen.classList.add("hidden");
     gameContainer.classList.remove("hidden");
@@ -163,10 +198,16 @@ function startGame(mode) {
         insaneShiftDirection = null;
     }
 
+    if (isSoundOn) {
+        turnOnSound();
+    } else {
+        turnOffSound();
+    }
+
     updateTimeColumnDisplay();
-    turnOnSound();
     updateHintDisplay();
     updateReshuffleDisplay();
+    updateEndRunButton();
     initGame();
     startTimer();
 }
@@ -175,6 +216,14 @@ function updateHintDisplay() {
     if (!hintBtn) return;
     hintBtn.textContent = `💡Hints: ${hintsLeft}`;
     hintBtn.disabled = hintsLeft <= 0;
+}
+
+function updateScoreDisplay() {
+    if (currentPlayType === "continuous") {
+        scoreElement.textContent = `Run: ${score} | Stage: ${stagesPlayed}`;
+    } else {
+        scoreElement.textContent = `Score: ${score}`;
+    }
 }
 
 function updateReshuffleDisplay() {
@@ -192,6 +241,18 @@ function updateReshuffleDisplay() {
     reshuffleBtn.classList.remove("hidden");
     reshuffleBtn.textContent = `🔄 Reshuffle: ${reshufflesLeft}`;
     reshuffleBtn.disabled = reshufflesLeft <= 0;
+}
+
+function updateEndRunButton() {
+    if (!endRunBtn) return;
+
+    if (currentPlayType === "continuous" && currentModeName) {
+        endRunBtn.classList.remove("hidden");
+        endRunBtn.disabled = false;
+    } else {
+        endRunBtn.classList.add("hidden");
+        endRunBtn.disabled = true;
+    }
 }
 
 function updateTimeColumnDisplay() {
@@ -245,8 +306,11 @@ function initGame() {
     clearImpossibleReshuffleTimer();
     clearPendingActions();
 
-    score = 0;
-    scoreElement.textContent = "Score: 0";
+    if (currentPlayType === "single" || stagesPlayed === 1) {
+        score = 0;
+    }
+    updateScoreDisplay();
+
     firstSelected = null;
     secondSelected = null;
     isGameOver = false;
@@ -473,7 +537,7 @@ function handleCellClick(row, col) {
             const effectiveCombo = Math.min(combo, 5);
 
             score += 100 + (effectiveCombo - 1) * comboBonusPerLevel;
-            scoreElement.textContent = `Score: ${score}`;
+            updateScoreDisplay();
 
             firstSelected = null;
             secondSelected = null;
@@ -779,7 +843,7 @@ function checkWin() {
     const modeBonus = getModeBonus();
 
     score += timeBonus + modeBonus;
-    scoreElement.textContent = `Score: ${score}`;
+    runTotalScore = score;
 
     winSound.currentTime = 0;
     winSound.play().catch(() => {});
@@ -788,13 +852,34 @@ function checkWin() {
     clearPendingActions();
     isGameOver = true;
 
-    const rank = saveLeaderboard();
+    updateScoreDisplay();
+    stagesPlayed += 1;
+
+    if (currentPlayType === "continuous") {
+        const finishedStage = stagesPlayed;
+
+        showEndScreen(
+            `STAGE ${finishedStage} CLEARED!`,
+            `⚡ Time bonus: +${timeBonus}`,
+            `🎯 Mode bonus: +${modeBonus}`,
+            `🏆 Score: ${score}`,
+            "Preparing next stage..."
+        );
+
+        setTimeout(() => {
+            startGame(currentModeName);
+        }, 1400);
+
+        return true;
+    }
+
+    const rank = saveLeaderboard(currentModeName);
     showEndScreen(
         "CONGRATULATIONS, YOU WIN!",
         `⚡ Time bonus: +${timeBonus}`,
         `🎯 Mode bonus: +${modeBonus}`,
         `🏆 Total Score: ${score}`,
-        rank ? `🔥 You have reached Top ${rank} on Leaderboard!`: ""
+        rank ? `🔥 You have reached Top ${rank} on Leaderboard!` : ""
     );
     return true;
 }
@@ -837,9 +922,44 @@ function handleTimeUp() {
     secondSelected = null;
     clearPath();
     renderBoard();
-    const rank = saveLeaderboard();
-    showEndScreen("TIME'S UP!", "", "",
-        `🏆 Total Score: ${score}`,  rank ? `🔥 You reached Top ${rank} on Leaderboard!` : "");
+
+    runTotalScore = score;
+
+    const rank = saveLeaderboard(currentModeName);
+
+    showEndScreen(
+        "TIME'S UP!",
+        `🏴‍☠️ Stages cleared: ${stagesPlayed-1}`,
+        "",
+        `🏆 Total Score: ${score}`,
+        rank ? `🔥 You reached Top ${rank} on Leaderboard!` : ""
+    );
+}
+
+function endContinuousRun() {
+    if (isGameOver || !currentMode || currentPlayType !== "continuous") return;
+
+    clearInterval(timeInterval);
+    clearImpossibleReshuffleTimer();
+    clearPendingActions();
+    isGameOver = true;
+    firstSelected = null;
+    secondSelected = null;
+    clearPath();
+    renderBoard();
+
+    runTotalScore = score;
+    updateScoreDisplay();
+
+    const rank = saveLeaderboard(currentModeName);
+
+    showEndScreen(
+        "CONTINUOUS RUN ENDED",
+        `🏴‍☠️ Stages cleared: ${stagesPlayed-1}`,
+        "",
+        `🏆 Total Score: ${score}`,
+        rank ? `🔥 You reached Top ${rank} on Leaderboard!` : ""
+    );
 }
 
 function getRandomDirection() {
@@ -960,7 +1080,7 @@ function useHint() {
 
     hintsLeft--;
     score = Math.max(0, score - 200);
-    scoreElement.textContent = `Score: ${score}`;
+    updateScoreDisplay();
     updateHintDisplay();
 
     if (hintsLeft > 0) {
@@ -1034,16 +1154,22 @@ function turnOffSound() {
     soundBtn.textContent = "🔇 Sound";
 }
 
-function saveLeaderboard() {
-    if (!currentMode || !currentModeName) return null;
+function getRunUsedSeconds() {
+    if (!runStartTimestamp) return 0;
+    return Math.max(0, Math.floor((Date.now() - runStartTimestamp) / 1000));
+}
 
-    const usedSeconds = currentMode.timeLeft - timeLeft;
+function saveLeaderboard(finalMode = currentModeName) {
+    if (!finalMode) return null;
+
+    const usedSeconds = getRunUsedSeconds();
     const newRecord = {
         id: Date.now() + Math.random(),
-        score,
+        score: score,
         usedSeconds,
         time: formatTime(usedSeconds),
-        mode: currentModeName.toUpperCase()
+        mode: finalMode.toUpperCase(),
+        stagesPlayed
     };
 
     const leaderboard = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || "[]");
@@ -1051,12 +1177,14 @@ function saveLeaderboard() {
 
     leaderboard.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
+        if (b.stagesPlayed !== a.stagesPlayed) return b.stagesPlayed - a.stagesPlayed;
         return a.usedSeconds - b.usedSeconds;
     });
 
-    const rank = leaderboard.findIndex(item => item.id === newRecord.id) + 1;
+    const trimmed = leaderboard.slice(0, 10);
+    const rank = trimmed.findIndex(item => item.id === newRecord.id) + 1;
 
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard.slice(0, 10)));
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(trimmed));
 
     if (rank >= 1 && rank <= 10) return rank;
     return null;
@@ -1071,7 +1199,7 @@ function renderLeaderboard() {
     if (leaderboard.length === 0) {
         leaderboardBody.innerHTML = `
             <tr>
-                <td colspan="4">No records yet</td>
+                <td colspan="5">No records yet</td>
             </tr>
         `;
         return;
@@ -1084,6 +1212,7 @@ function renderLeaderboard() {
             <td>${item.score}</td>
             <td>${item.time}</td>
             <td>${item.mode}</td>
+            <td>${item.stagesPlayed ?? 1}</td>
         `;
         leaderboardBody.appendChild(row);
     });
@@ -1113,13 +1242,16 @@ function togglePause() {
 
 function restartGame() {
     if (!currentMode) return;
+    resetRunProgress();
+    runStartTimestamp = Date.now();
+    runTotalScore = 0;
+    score = 0;
 
     clearInterval(timeInterval);
     clearImpossibleReshuffleTimer();
     clearPendingActions();
 
-    score = 0;
-    scoreElement.textContent = "Score: 0";
+    updateScoreDisplay();
     firstSelected = null;
     secondSelected = null;
     boardElement.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
@@ -1163,6 +1295,7 @@ hintBtn.addEventListener("click", useHint);
 reshuffleBtn.addEventListener("click", useManualReshuffle);
 restartBtn.addEventListener("click", restartGame);
 pauseBtn.addEventListener("click", togglePause);
+endRunBtn.addEventListener("click", endContinuousRun);
 
 window.addEventListener("resize", () => {
     if (gameContainer.classList.contains("hidden")) return;
@@ -1170,5 +1303,6 @@ window.addEventListener("resize", () => {
     clearPath();
 });
 
+setPlayType("single");
 renderLeaderboard();
 showStartScreen();

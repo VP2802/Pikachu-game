@@ -10,6 +10,20 @@
         <div id="startScreen" class="start-screen">
             <h1>ONE PIECE BOUNTY MATCH</h1>
             <p id="mode-title">MODE</p>
+            <div class="play-type-panel">
+                <p class="play-type-title">PLAY TYPE</p>
+                <div class="play-type-buttons">
+                    <button id="singleRunBtn" class="play-type-btn active" onclick="setPlayType('single')">
+                        SINGLE RUN
+                    </button>
+                    <button id="continuousRunBtn" class="play-type-btn" onclick="setPlayType('continuous')">
+                        CONTINUOUS
+                    </button>
+                </div>
+                <p id="playTypeDescription" class="play-type-description">
+                    Play exactly 1 match and get the final result.
+                </p>
+            </div>
             <div class="mode-buttons">
                 <div>
                     <button class="btn-easy" onclick="startGame('easy')">EASY</button>
@@ -37,11 +51,12 @@
                             <th>Score</th>
                             <th>Time</th>
                             <th>Mode</th>
+                            <th>Stages</th>
                         </tr>
                     </thead>
                     <tbody id="leaderboardBody">
                         <tr>
-                            <td colspan="4">No records yet</td>
+                            <td colspan="5">No records yet</td>
                         </tr>
                     </tbody>
                 </table>
@@ -55,6 +70,7 @@
                 <button id="reshuffleBtn" class="hidden">🔄 Reshuffle</button>
                 <button id="pauseBtn">⏸ Pause</button>
                 <button id="restartBtn">Restart</button>
+                <button id="endRunBtn" class="hidden">End</button>
                 <button id="homeBtn">Home</button>
             </div>
             <div class="game-layout">

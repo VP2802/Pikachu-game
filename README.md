@@ -8,26 +8,53 @@ A browser-based **One Piece themed Pikachu matching game** built with **HTML, CS
 
 ## About the Project
 
-This project recreates the classic tile-matching gameplay with a **One Piece** visual theme and a more polished UI/UX. Players match identical character tiles by connecting them with a valid path, earn points, and race against a stylized **Wanted Poster** countdown timer.
+**One Piece: Bounty Match** is a browser game inspired by the classic Pikachu tile-matching gameplay, redesigned with a **One Piece pirate theme** and a more polished visual experience.
 
-The game includes multiple difficulty modes, score progression, combo bonuses, hint and reshuffle mechanics, sound controls, pause/resume, and a local leaderboard.
+Players must match identical character tiles by connecting them with a valid path of at most 2 turns. The game features multiple difficulty modes, combo scoring, board shifting mechanics, a stylized **Wanted Poster timer**, and a persistent local leaderboard.
+
+This version also includes **2 play styles**:
+
+- **Single Run**: play 1 stage and finish immediately
+- **Continuous**: keep clearing stage after stage, accumulate total score, and press **End** anytime to summarize the run
+
+---
 
 ## Features
 
-- **4 game modes**: Easy, Hard, Insane, Impossible
-- **One Piece themed UI** with ocean/pirate-inspired styling
-- **Unique background artwork for each game mode**
-- **Board reveal effect** where matched tiles gradually uncover the hidden image beneath
-- **Animated tile removal transitions** for smoother visual feedback
-- **Wanted Poster timer** with animated warning/danger states
-- **Combo scoring system** with increasing bonus points
+- **4 difficulty modes**: Easy, Hard, Insane, Impossible
+- **2 play types**: Single Run and Continuous
+- **One Piece themed UI**
+- **Unique board background for each mode**
+- **Wanted Poster countdown timer**
+- **Combo scoring system**
 - **Hint system** for Easy mode
-- **Manual reshuffle** for selected modes
+- **Manual reshuffle** for supported modes
 - **Board shifting mechanics** in higher difficulties
-- **Pause / Resume / Restart / Home** controls
-- **Sound effects** for match, wrong move, win, time pressure, hint, reshuffle, and restart
+- **Pause / Resume / Restart / Home / End** controls
+- **Sound effects** for major game actions
 - **Leaderboard** saved with `localStorage`
+- **Leaderboard shows score, time, mode, and stages cleared**
 - **Responsive layout** for smaller screens
+
+---
+
+## Play Types
+
+### Single Run
+- Play exactly **1 stage**
+- After winning or losing, the result is shown immediately
+- Best for quick matches
+
+### Continuous
+- Keep playing multiple stages in a row
+- Score is accumulated across the run
+- The top bar displays:
+  - **Run** = total accumulated score
+  - **Stage** = current stage score
+- Press **End** anytime to stop and save the result
+- Leaderboard records how many stages were cleared in that run
+
+---
 
 ## Game Modes
 
@@ -36,15 +63,47 @@ The game includes multiple difficulty modes, score progression, combo bonuses, h
 | Easy | 15 minutes | 3 | 9 x 10 | 5 reshuffles |
 | Hard | 12 minutes | 0 | 10 x 15 | 3 reshuffles |
 | Insane | 10 minutes | 0 | 12 x 15 | 1 reshuffle + fixed random shift for the whole game |
-| Impossible | 10 minutes | 0 | 15 x 16 | no reshuffle + random shift after every match |
+| Impossible | 8 minutes | 0 | 15 x 16 | no reshuffle + random shift after every match |
+
+---
 
 ## Scoring
 
 - Base score for each successful match
-- Combo bonus for consecutive correct matches
-- Extra **time bonus** when finishing the board
-- Extra **mode bonus** for higher difficulty levels
-- Leaderboard ranking is based on **score first**, then **completion time**
+- Combo bonus for consecutive matches
+- Extra **time bonus** when clearing a stage
+- Extra **mode bonus** for harder modes
+- In **Continuous**, the final run score is the total accumulated score across all cleared stages plus the current stage score if ended mid-run
+- Leaderboard ranking priority:
+  1. Higher **score**
+  2. More **stages cleared**
+  3. Faster **completion time**
+
+---
+
+## Controls
+
+- **Sound**: turn sound on/off
+- **Hints**: reveal a valid move in Easy mode
+- **Reshuffle**: shuffle remaining tiles in supported modes
+- **Pause**: pause or resume the game
+- **Restart**: restart the current run
+- **End**: finish the current continuous run and show the summary
+- **Home**: return to the start screen
+
+---
+
+## How to Play
+
+1. Open the game in your browser
+2. Choose a **Play Type**
+3. Choose a **Mode**
+4. Click 2 identical tiles to match them
+5. A match is valid only if the 2 tiles can be connected by a path with at most **2 turns**
+6. Clear the board before time runs out
+7. Try to get the highest score and clear as many stages as possible
+
+---
 
 ## Tech Stack
 
@@ -53,6 +112,8 @@ The game includes multiple difficulty modes, score progression, combo bonuses, h
 - **Vanilla JavaScript**
 - **LocalStorage** for leaderboard persistence
 - **GitHub Pages** for deployment
+
+---
 
 ## Project Structure
 
@@ -64,40 +125,3 @@ One-Piece-Bounty-Match/
 ├── README.md
 ├── image/
 └── sound/
-```
-
-## How to Run Locally
-
-1. Clone this repository.
-2. Open the project folder in **VS Code**.
-3. Run the project with **Live Server** or simply open `index.html` in your browser.
-
-## How to Play
-
-1. Choose a game mode from the start screen.
-2. Click 2 identical tiles to match them.
-3. A match is valid only if the two tiles can be connected by a path with at most 2 turns.
-4. Clear the entire board before time runs out.
-5. Try to reach the leaderboard with the highest score.
-
-## Controls
-
-- **Sound**: turn sound on/off
-- **Hints**: show a valid move when available
-- **Reshuffle**: shuffle remaining tiles in supported modes
-- **Pause**: pause or resume the game
-- **Restart**: start the current mode again
-- **Home**: return to the start screen
-
-## Notes
-
-- Leaderboard data is stored in the browser using `localStorage`, so it will remain on the same browser/device unless cleared.
-- The game uses image and sound assets stored in the project folders.
-
-## Future Improvements
-
-- Add player name input for leaderboard records
-- Add animations and transition polish for tile removal
-- Add more themes or character packs
-- Add mobile-specific controls and optimization
-- Add online leaderboard support
