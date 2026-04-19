@@ -98,7 +98,3 @@ Pikachu-game/
 - Add more themes or character packs
 - Add mobile-specific controls and optimization
 - Add online leaderboard support
-
-## Author
-
-Developed by **VP2802**.
