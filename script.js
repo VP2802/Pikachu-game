@@ -969,17 +969,17 @@ function useHint() {
 
 function turnOnSound() {
     for (let i = 0; i < 3; i++) {
-        matchSound[i].volume = 0.2;
-        wrongSound[i].volume = 0.2;
+        matchSound[i].volume = 0.25;
+        wrongSound[i].volume = 0.25;
     }
 
-    winSound.volume = 0.2;
-    timeSound.volume = 0.2;
-    shuffleSound.volume = 0.2;
-    hurrySound.volume = 0.2;
-    useHintSound.volume = 0.2;
-    noHintLeftSound.volume = 0.2;
-    restartSound.volume = 0.2;
+    winSound.volume = 0.25;
+    timeSound.volume = 0.25;
+    shuffleSound.volume = 0.25;
+    hurrySound.volume = 0.25;
+    useHintSound.volume = 0.25;
+    noHintLeftSound.volume = 0.25;
+    restartSound.volume = 0.25;
 
     soundBtn.textContent = "🔊 Sound";
 }
