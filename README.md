@@ -16,6 +16,9 @@ The game includes multiple difficulty modes, score progression, combo bonuses, h
 
 - **4 game modes**: Easy, Hard, Insane, Impossible
 - **One Piece themed UI** with ocean/pirate-inspired styling
+- **Unique background artwork for each game mode**
+- **Board reveal effect** where matched tiles gradually uncover the hidden image beneath
+- **Animated tile removal transitions** for smoother visual feedback
 - **Wanted Poster timer** with animated warning/danger states
 - **Combo scoring system** with increasing bonus points
 - **Hint system** for Easy mode
@@ -33,7 +36,7 @@ The game includes multiple difficulty modes, score progression, combo bonuses, h
 | Easy | 15 minutes | 3 | 9 x 10 | 5 reshuffles |
 | Hard | 12 minutes | 0 | 10 x 15 | 3 reshuffles |
 | Insane | 10 minutes | 0 | 12 x 15 | 1 reshuffle + fixed random shift for the whole game |
-| Impossible | 10 minutes | 0 | 15 x 16 | random shift after every match + no reshuffle |
+| Impossible | 10 minutes | 0 | 15 x 16 | no reshuffle + random shift after every match |
 
 ## Scoring
 
@@ -54,7 +57,7 @@ The game includes multiple difficulty modes, score progression, combo bonuses, h
 ## Project Structure
 
 ```bash
-Pikachu-game/
+One-Piece-Bounty-Match/
 ├── index.html
 ├── style.css
 ├── script.js
