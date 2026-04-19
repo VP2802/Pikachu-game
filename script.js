@@ -762,7 +762,7 @@ function checkWin() {
         }
     }
 
-    const timeBonus = timeLeft * 10;
+    const timeBonus = timeLeft * 30;
     const modeBonus = getModeBonus();
 
     score += timeBonus + modeBonus;
