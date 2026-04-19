@@ -48,12 +48,11 @@ const restartSound = new Audio("sound/restart.mp3");
 let board = [];
 let firstSelected = null;
 let secondSelected = null;
-let score = 0;
+let score = 0; 
 let matchSoundIndex = 0;
 let wrongSoundIndex = 0;
 let timeLeft = 0;
 let timeInterval = null;
-let impossibleReshuffleInterval = null;
 let isGameOver = false;
 let hintsLeft = 0;
 let hintCells = [];
@@ -74,15 +73,17 @@ let hintClearTimeout = null;
 let insaneShiftDirection = null;
 let isPaused = false;
 let matchedCells = [];
+let nextStageTimeout = null;
 let currentPlayType = "single";
-let runTotalScore = 0;
-let stagesPlayed = 1;
-let runStartTimestamp = null;
+let runTotalScore = 0;   
+let currentStage = 1;    
+let stagesCleared = 0;   
+let runUsedSeconds = 0;  
 
 const gameModes = {
     easy: { timeLeft: 900, hintsLeft: 3, reshufflesLeft: 5, rows: 9, cols: 10, cellSize: 60 },
     hard: { timeLeft: 720, hintsLeft: 0, reshufflesLeft: 3, rows: 10, cols: 15, cellSize: 50 },
-    insane: { timeLeft: 600, hintsLeft: 0, reshufflesLeft: 1, rows:12, cols: 15, cellSize: 45 },
+    insane: { timeLeft: 600, hintsLeft: 0, reshufflesLeft: 1, rows: 12, cols: 15, cellSize: 45 },
     impossible: { timeLeft: 480, hintsLeft: 0, reshufflesLeft: 0, rows: 15, cols: 16, cellSize: 35 }
 };
 
@@ -100,11 +101,6 @@ function setPlayType(type) {
     }
 }
 
-function clearImpossibleReshuffleTimer() {
-    clearInterval(impossibleReshuffleInterval);
-    impossibleReshuffleInterval = null;
-}
-
 function clearPendingActions() {
     clearTimeout(matchResolveTimeout);
     clearTimeout(wrongResolveTimeout);
@@ -117,15 +113,21 @@ function clearPendingActions() {
     isBoardBusy = false;
 }
 
+function clearNextStageTimeout() {
+    clearTimeout(nextStageTimeout);
+    nextStageTimeout = null;
+}
+
 function resetRunProgress() {
     runTotalScore = 0;
-    stagesPlayed = 1;
-    runStartTimestamp = null;
+    currentStage = 1;
+    stagesCleared = 0;
+    runUsedSeconds = 0;
 }
 
 function showStartScreen() {
     clearInterval(timeInterval);
-    clearImpossibleReshuffleTimer();
+    clearNextStageTimeout();
     clearPendingActions();
 
     startScreen.classList.remove("hidden");
@@ -149,6 +151,7 @@ function showStartScreen() {
     currentModeName = null;
     reshufflesLeft = 0;
     insaneShiftDirection = null;
+    score = 0;
 
     if (timeBar) {
         timeBar.style.height = "0%";
@@ -160,21 +163,15 @@ function showStartScreen() {
 
     resetCombo();
     clearPath();
+    resetRunProgress();
     updateReshuffleDisplay();
     updateTimeColumnDisplay();
-    resetRunProgress();
     renderLeaderboard();
 }
 
 function startGame(mode) {
     currentModeName = mode;
     currentMode = gameModes[mode];
-
-    if (!runStartTimestamp) {
-        runStartTimestamp = Date.now();
-        runTotalScore = 0;
-        stagesPlayed = 1;
-    }
 
     startScreen.classList.add("hidden");
     gameContainer.classList.remove("hidden");
@@ -198,11 +195,8 @@ function startGame(mode) {
         insaneShiftDirection = null;
     }
 
-    if (isSoundOn) {
-        turnOnSound();
-    } else {
-        turnOffSound();
-    }
+    if (isSoundOn) turnOnSound();
+    else turnOffSound();
 
     updateTimeColumnDisplay();
     updateHintDisplay();
@@ -214,13 +208,29 @@ function startGame(mode) {
 
 function updateHintDisplay() {
     if (!hintBtn) return;
+
+    if (!currentMode || currentModeName !== "easy") {
+        hintBtn.classList.add("hidden");
+        hintBtn.disabled = true;
+        hintBtn.textContent = "💡Hints";
+        return;
+    }
+
+    if (hintsLeft <= 0) {
+        hintBtn.classList.add("hidden");
+        hintBtn.disabled = true;
+        hintBtn.textContent = "💡Hints";
+        return;
+    }
+
+    hintBtn.classList.remove("hidden");
     hintBtn.textContent = `💡Hints: ${hintsLeft}`;
-    hintBtn.disabled = hintsLeft <= 0;
+    hintBtn.disabled = false;
 }
 
 function updateScoreDisplay() {
     if (currentPlayType === "continuous") {
-        scoreElement.textContent = `Run: ${score} | Stage: ${stagesPlayed}`;
+        scoreElement.textContent = `Total: ${runTotalScore} | Stage Score: ${score} | Stage: ${currentStage}`;
     } else {
         scoreElement.textContent = `Score: ${score}`;
     }
@@ -229,9 +239,32 @@ function updateScoreDisplay() {
 function updateReshuffleDisplay() {
     if (!reshuffleBtn) return;
 
+    if (!currentModeName) {
+        reshuffleBtn.classList.add("hidden");
+        reshuffleBtn.disabled = true;
+        reshuffleBtn.textContent = "🔄 Reshuffle";
+        return;
+    }
+
+    if (currentModeName === "easy") {
+        const shouldShow = hintsLeft <= 0;
+
+        if (!shouldShow) {
+            reshuffleBtn.classList.add("hidden");
+            reshuffleBtn.disabled = true;
+            reshuffleBtn.textContent = "🔄 Reshuffle";
+            return;
+        }
+
+        reshuffleBtn.classList.remove("hidden");
+        reshuffleBtn.textContent = `🔄 Reshuffle: ${reshufflesLeft}`;
+        reshuffleBtn.disabled = reshufflesLeft <= 0;
+        return;
+    }
+
     const manualModes = ["hard", "insane"];
 
-    if (!currentModeName || !manualModes.includes(currentModeName)) {
+    if (!manualModes.includes(currentModeName)) {
         reshuffleBtn.classList.add("hidden");
         reshuffleBtn.disabled = true;
         reshuffleBtn.textContent = "🔄 Reshuffle";
@@ -281,8 +314,12 @@ function updateTimeColumnDisplay() {
 }
 
 function useManualReshuffle() {
-     if (isGameOver || isBoardBusy) return;
-    if (!["hard", "insane"].includes(currentModeName)) return;
+    if (isGameOver || isBoardBusy) return;
+
+    const canUseInEasy = currentModeName === "easy" && hintsLeft <= 0;
+    const canUseInOtherModes = ["hard", "insane"].includes(currentModeName);
+
+    if (!canUseInEasy && !canUseInOtherModes) return;
 
     if (reshufflesLeft <= 0) {
         notify("YOU HAVE USED ALL RESHUFFLES!");
@@ -303,12 +340,10 @@ function useManualReshuffle() {
 
 function initGame() {
     clearInterval(timeInterval);
-    clearImpossibleReshuffleTimer();
+    clearNextStageTimeout();
     clearPendingActions();
 
-    if (currentPlayType === "single" || stagesPlayed === 1) {
-        score = 0;
-    }
+    score = 0; 
     updateScoreDisplay();
 
     firstSelected = null;
@@ -388,7 +423,7 @@ function getCellCenter(row, col) {
 
 function createBoard() {
     const symbols = [
-        "image1.png", "image2.png", "image3.png", "image4.png","image5.png",
+        "image1.png", "image2.png", "image3.png", "image4.png", "image5.png",
         "image6.png", "image7.png", "image8.png", "image9.png", "image10.png",
         "image11.png", "image12.png", "image13.png", "image14.png", "image15.png",
         "image16.png", "image17.png", "image18.png", "image19.png", "image20.png",
@@ -449,19 +484,13 @@ function renderBoard() {
             }
 
             const isHintCell = hintCells.some(item => item.row === row && item.col === col);
-            if (isHintCell) {
-                cell.classList.add("hint");
-            }
+            if (isHintCell) cell.classList.add("hint");
 
             const isWrongCell = wrongCells.some(item => item.row === row && item.col === col);
-            if (isWrongCell) {
-                cell.classList.add("wrong");
-            }
+            if (isWrongCell) cell.classList.add("wrong");
 
             const isMatchedCell = matchedCells.some(item => item.row === row && item.col === col);
-            if (isMatchedCell) {
-                cell.classList.add("matched");
-            }
+            if (isMatchedCell) cell.classList.add("matched");
 
             cell.addEventListener("click", () => handleCellClick(row, col));
             boardElement.appendChild(cell);
@@ -470,7 +499,7 @@ function renderBoard() {
 }
 
 function handleCellClick(row, col) {
-    if (isGameOver || isBoardBusy||isPaused) return;
+    if (isGameOver || isBoardBusy || isPaused) return;
     if (board[row][col] === 0) return;
 
     if (firstSelected === null) {
@@ -517,7 +546,7 @@ function handleCellClick(row, col) {
         combo += 1;
 
         isBoardBusy = true;
-        matchedCells = [p1,p2];
+        matchedCells = [p1, p2];
         renderBoard();
 
         clearTimeout(matchResolveTimeout);
@@ -608,10 +637,25 @@ function reshuffleBoard() {
 
 function reshuffleUntilValid() {
     let attempts = 0;
+
     do {
         reshuffleBoard();
         attempts++;
     } while (!hasValidMove() && attempts < 100);
+
+    if (hasValidMove()) return;
+
+    rebuildRemainingBoard();
+
+    let fallbackAttempts = 0;
+    do {
+        reshuffleBoard();
+        fallbackAttempts++;
+    } while (!hasValidMove() && fallbackAttempts < 20);
+
+    if (!hasValidMove()) {
+        notify("Board was regenerated because no valid moves were available.");
+    }
 }
 
 function shuffleRemainingBoard() {
@@ -623,36 +667,25 @@ function shuffleRemainingBoard() {
     clearPath();
 }
 
-function countRemainingTiles() {
-    let count = 0;
-    for (let row = 1; row <= rows; row++) {
-        for (let col = 1; col <= cols; col++) {
-            if (board[row][col] !== 0) count++;
-        }
-    }
-    return count;
-}
-
 function getComboBonusPerLevel() {
-    switch(currentModeName){
+    switch (currentModeName) {
         case "easy":
             return 10;
-            break;
         case "hard":
-            return 20;
-            break;
+            return 15;
         case "insane":
-            return 40;
+            return 25;
         case "impossible":
-            return 60;
-            break;
+            return 35;
+        default:
+            return 10;
     }
 }
 
 function getModeBonus() {
     if (currentModeName === "hard") return 500;
-    if (currentModeName === "insane") return 2000;
-    if (currentModeName === "impossible") return 5000;
+    if (currentModeName === "insane") return 1200;
+    if (currentModeName === "impossible") return 2500;
     return 0;
 }
 
@@ -714,38 +747,35 @@ function checkTwoTurns(p1, p2) {
         if (board[p1.row][col] !== 0) break;
         const mid = { row: p1.row, col };
         const subPath = checkOneTurn(mid, p2);
-        if (subPath) return [p1, ...subPath.slice(0)];
+        if (subPath) return [p1, ...subPath];
     }
 
     for (let col = p1.col - 1; col >= 0; col--) {
         if (board[p1.row][col] !== 0) break;
         const mid = { row: p1.row, col };
         const subPath = checkOneTurn(mid, p2);
-        if (subPath) return [p1, ...subPath.slice(0)];
+        if (subPath) return [p1, ...subPath];
     }
 
     for (let row = p1.row - 1; row >= 0; row--) {
         if (board[row][p1.col] !== 0) break;
         const mid = { row, col: p1.col };
         const subPath = checkOneTurn(mid, p2);
-        if (subPath) return [p1, ...subPath.slice(0)];
+        if (subPath) return [p1, ...subPath];
     }
 
     for (let row = p1.row + 1; row < rows + 2; row++) {
         if (board[row][p1.col] !== 0) break;
         const mid = { row, col: p1.col };
         const subPath = checkOneTurn(mid, p2);
-        if (subPath) return [p1, ...subPath.slice(0)];
+        if (subPath) return [p1, ...subPath];
     }
 
     return null;
 }
 
 function canConnect(p1, p2) {
-    if (checkStraight(p1, p2)) return checkStraight(p1, p2);
-    if (checkOneTurn(p1, p2)) return checkOneTurn(p1, p2);
-    if (checkTwoTurns(p1, p2)) return checkTwoTurns(p1, p2);
-    return null;
+    return checkStraight(p1, p2) || checkOneTurn(p1, p2) || checkTwoTurns(p1, p2);
 }
 
 function clearPath() {
@@ -832,6 +862,13 @@ function hasValidMove() {
     return findValidMove() !== null;
 }
 
+function getTimeBonus() {
+    if (currentModeName === "hard") return 12;
+    if (currentModeName === "insane") return 16;
+    if (currentModeName === "impossible") return 20;
+    return 8;
+}
+
 function checkWin() {
     for (let row = 1; row <= rows; row++) {
         for (let col = 1; col <= cols; col++) {
@@ -839,41 +876,41 @@ function checkWin() {
         }
     }
 
-    const timeBonus = timeLeft * 30;
+    const timeBonus = timeLeft * getTimeBonus();
     const modeBonus = getModeBonus();
-
-    score += timeBonus + modeBonus;
-    runTotalScore = score;
+    const stageUsedSeconds = currentMode.timeLeft - timeLeft;
+    const stageScore = score + timeBonus + modeBonus;
 
     winSound.currentTime = 0;
     winSound.play().catch(() => {});
     clearInterval(timeInterval);
-    clearImpossibleReshuffleTimer();
     clearPendingActions();
     isGameOver = true;
 
+    runTotalScore += stageScore;
+    runUsedSeconds += stageUsedSeconds;
+    stagesCleared += 1;
     updateScoreDisplay();
-    stagesPlayed += 1;
 
     if (currentPlayType === "continuous") {
-        const finishedStage = stagesPlayed;
+        const finishedStage = currentStage;
 
-        showEndScreen(
-            `STAGE ${finishedStage} CLEARED!`,
-            `⚡ Time bonus: +${timeBonus}`,
-            `🎯 Mode bonus: +${modeBonus}`,
-            `🏆 Score: ${score}`,
-            "Preparing next stage..."
-        );
+        showStageClearOverlay(finishedStage, timeBonus, modeBonus);
 
-        setTimeout(() => {
+        currentStage += 1;
+
+        clearNextStageTimeout();
+        nextStageTimeout = setTimeout(() => {
+            nextStageTimeout = null;
             startGame(currentModeName);
-        }, 1400);
+        }, 1000);
 
         return true;
     }
 
+    score = stageScore;
     const rank = saveLeaderboard(currentModeName);
+
     showEndScreen(
         "CONGRATULATIONS, YOU WIN!",
         `⚡ Time bonus: +${timeBonus}`,
@@ -915,7 +952,7 @@ function startTimer() {
 
 function handleTimeUp() {
     clearInterval(timeInterval);
-    clearImpossibleReshuffleTimer();
+    clearNextStageTimeout();
     clearPendingActions();
     isGameOver = true;
     firstSelected = null;
@@ -923,15 +960,19 @@ function handleTimeUp() {
     clearPath();
     renderBoard();
 
-    runTotalScore = score;
+    timeSound.currentTime = 0;
+    timeSound.play().catch(() => {});
 
+    runUsedSeconds += currentMode.timeLeft - timeLeft;
+
+    const finalScore = currentPlayType === "continuous" ? runTotalScore : score;
     const rank = saveLeaderboard(currentModeName);
 
     showEndScreen(
         "TIME'S UP!",
-        `🏴‍☠️ Stages cleared: ${stagesPlayed-1}`,
+        `🏴‍☠️ Stages cleared: ${stagesCleared}`,
         "",
-        `🏆 Total Score: ${score}`,
+        `🏆 Total Score: ${finalScore}`,
         rank ? `🔥 You reached Top ${rank} on Leaderboard!` : ""
     );
 }
@@ -940,7 +981,7 @@ function endContinuousRun() {
     if (isGameOver || !currentMode || currentPlayType !== "continuous") return;
 
     clearInterval(timeInterval);
-    clearImpossibleReshuffleTimer();
+    clearNextStageTimeout();
     clearPendingActions();
     isGameOver = true;
     firstSelected = null;
@@ -948,16 +989,15 @@ function endContinuousRun() {
     clearPath();
     renderBoard();
 
-    runTotalScore = score;
-    updateScoreDisplay();
+    runUsedSeconds += currentMode.timeLeft - timeLeft;
 
     const rank = saveLeaderboard(currentModeName);
 
     showEndScreen(
         "CONTINUOUS RUN ENDED",
-        `🏴‍☠️ Stages cleared: ${stagesPlayed-1}`,
+        `🏴‍☠️ Stages cleared: ${stagesCleared}`,
         "",
-        `🏆 Total Score: ${score}`,
+        `🏆 Total Score: ${runTotalScore}`,
         rank ? `🔥 You reached Top ${rank} on Leaderboard!` : ""
     );
 }
@@ -1035,8 +1075,7 @@ function shiftBoard(direction) {
     }
 }
 
-function showEndScreen(message, bonusText = "", modeBonusText = "",
-                        totalScoreText = "",leaderBoardRankText = "") {
+function showEndScreen(message, bonusText = "", modeBonusText = "", totalScoreText = "", leaderBoardRankText = "") {
     startScreen.classList.add("hidden");
     gameContainer.classList.add("hidden");
     endScreen.classList.remove("hidden");
@@ -1073,7 +1112,12 @@ function useHint() {
     if (hintsLeft <= 0) return;
 
     const move = findValidMove();
-    if (!move) return;
+
+    if (!move) {
+        notify("No valid moves available. Reshuffling board...");
+        shuffleRemainingBoard();
+        return;
+    }
 
     hintCells = [move[0], move[1]];
     renderBoard();
@@ -1082,6 +1126,7 @@ function useHint() {
     score = Math.max(0, score - 200);
     updateScoreDisplay();
     updateHintDisplay();
+    updateReshuffleDisplay();
 
     if (hintsLeft > 0) {
         useHintSound.currentTime = 0;
@@ -1154,18 +1199,24 @@ function turnOffSound() {
     soundBtn.textContent = "🔇 Sound";
 }
 
-function getRunUsedSeconds() {
-    if (!runStartTimestamp) return 0;
-    return Math.max(0, Math.floor((Date.now() - runStartTimestamp) / 1000));
-}
-
 function saveLeaderboard(finalMode = currentModeName) {
-    if (!finalMode) return null;
+    if (!finalMode || !currentMode) return null;
 
-    const usedSeconds = getRunUsedSeconds();
+    const usedSeconds = currentPlayType === "continuous"
+        ? runUsedSeconds
+        : currentMode.timeLeft - timeLeft;
+
+    const finalScore = currentPlayType === "continuous"
+        ? runTotalScore
+        : score;
+
+    const stagesPlayed = currentPlayType === "continuous"
+        ? stagesCleared
+        : 1;
+
     const newRecord = {
         id: Date.now() + Math.random(),
-        score: score,
+        score: finalScore,
         usedSeconds,
         time: formatTime(usedSeconds),
         mode: finalMode.toUpperCase(),
@@ -1240,18 +1291,72 @@ function togglePause() {
     startTimer();
 }
 
+function showStageClearOverlay(stageNumber, timeBonus, modeBonus) {
+    endMessage.textContent = `STAGE ${stageNumber} CLEARED!`;
+    bonusMessage.textContent = `⚡ Time bonus: +${timeBonus}`;
+    modeBonusMessage.textContent = `🎯 Mode bonus: +${modeBonus}`;
+    totalScoreMessage.textContent = `🏆 Total Score: ${runTotalScore}`;
+    leaderboardRankMessage.textContent = "Next stage is starting...";
+
+    startScreen.classList.add("hidden");
+    gameContainer.classList.add("hidden");
+    endScreen.classList.remove("hidden");
+
+    endScreen.classList.remove("win-flash");
+    endMessage.classList.remove("win-pop");
+}
+
+function rebuildRemainingBoard() {
+    const remainingPositions = [];
+    const remainingCount = (() => {
+        let count = 0;
+        for (let row = 1; row <= rows; row++) {
+            for (let col = 1; col <= cols; col++) {
+                if (board[row][col] !== 0) {
+                    remainingPositions.push({ row, col });
+                    count++;
+                }
+            }
+        }
+        return count;
+    })();
+
+    if (remainingCount === 0) return;
+
+    const symbols = [
+        "image1.png", "image2.png", "image3.png", "image4.png", "image5.png",
+        "image6.png", "image7.png", "image8.png", "image9.png", "image10.png",
+        "image11.png", "image12.png", "image13.png", "image14.png", "image15.png",
+        "image16.png", "image17.png", "image18.png", "image19.png", "image20.png",
+        "image21.png", "image22.png", "image23.png", "image24.png", "image25.png",
+        "image26.png", "image27.png", "image28.png", "image29.png", "image30.png"
+    ];
+
+    const newValues = [];
+    const pairCount = Math.floor(remainingCount / 2);
+
+    for (let i = 0; i < pairCount; i++) {
+        const value = symbols[i % symbols.length];
+        newValues.push(value, value);
+    }
+
+    shuffle(newValues);
+
+    for (let i = 0; i < remainingPositions.length; i++) {
+        const { row, col } = remainingPositions[i];
+        board[row][col] = newValues[i];
+    }
+}
+
 function restartGame() {
     if (!currentMode) return;
-    resetRunProgress();
-    runStartTimestamp = Date.now();
-    runTotalScore = 0;
-    score = 0;
 
+    resetRunProgress();
     clearInterval(timeInterval);
-    clearImpossibleReshuffleTimer();
+    clearNextStageTimeout();
     clearPendingActions();
 
-    updateScoreDisplay();
+    score = 0;
     firstSelected = null;
     secondSelected = null;
     boardElement.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
@@ -1273,6 +1378,7 @@ function restartGame() {
         insaneShiftDirection = null;
     }
 
+    updateScoreDisplay();
     updateHintDisplay();
     updateReshuffleDisplay();
     updateTimeColumnDisplay();
